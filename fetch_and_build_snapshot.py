@@ -13,14 +13,45 @@ INDUSTRY_MAP = {
     'sz399997': '白酒消费', 'sz399986': '汽车制造'
 }
 
-# 真正的全区间等距跳跃分层抽样配置 (步长 k ≈ 4~5，全周期覆盖老股至最新次新股)
 SYSTEMATIC_PLAN = [
-    ('sh_a', [1, 5, 10, 15, 20, 25, 30, 34], 50), # 沪市主板 (400只，覆盖 600, 601, 603, 605)
-    ('sz_a', [1, 4, 8, 12, 16, 20, 24, 28], 50),  # 深市主板 (400只，覆盖 000, 001, 002, 003)
-    ('cyb',  [1, 6, 11, 16, 21, 27], 50),         # 创业板   (300只，覆盖 300, 301)
-    ('kcb',  [1, 4, 8, 11], 50),                  # 科创板   (200只，覆盖 688001 -> 6887xx)
-    ('hs_bjs', [1, 5], 50),                       # 北交所   (100只，覆盖 920000 -> 9206xx)
+    ('sh_a', [1, 5, 10, 15, 20, 25, 30, 34], 50),
+    ('sz_a', [1, 4, 8, 12, 16, 20, 24, 28], 50),
+    ('cyb',  [1, 6, 11, 16, 21, 27], 50),
+    ('kcb',  [1, 4, 8, 11], 50),
+    ('hs_bjs', [1, 5], 50),
 ]
+
+def calculate_anomalies(current_stocks, previous_stocks):
+    """通过对比历史快照与当前快照，计算 10-20 分钟短窗超额收益异动"""
+    if not previous_stocks:
+        # 如果没有历史快照，退化为使用日内振幅或相对全天涨跌幅极值
+        sorted_by_pct = sorted(current_stocks, key=lambda x: x['pct'], reverse=True)
+        top_surge = [s for s in sorted_by_pct if s['pct'] >= 9.8][:3]
+        top_plunge = [s for s in sorted_by_pct if s['pct'] <= -5.0][:2]
+        return {
+            "surges": [{"code": s["code"], "name": s["name"], "pct": s["pct"], "delta_window": "日内绝对涨幅"} for s in top_surge],
+            "plunges": [{"code": s["code"], "name": s["name"], "pct": s["pct"], "delta_window": "日内绝对跌幅"} for s in top_plunge],
+            "co_exposure": "未形成单一因子过度暴露（初始快照，无差分历史缓存）"
+        }
+
+    prev_map = {s['code']: s['pct'] for s in previous_stocks}
+    deltas = []
+    for s in current_stocks:
+        if s['code'] in prev_map:
+            d = s['pct'] - prev_map[s['code']]
+            deltas.append({'code': s['code'], 'name': s['name'], 'pct': s['pct'], 'delta_10m': d})
+
+    deltas_sorted = sorted(deltas, key=lambda x: x['delta_10m'], reverse=True)
+    surges = [s for s in deltas_sorted if s['delta_10m'] > 2.0][:3]
+    plunges = [s for s in deltas_sorted if s['delta_10m'] < -2.0][:3]
+
+    co_exposure = "未形成单一因子共性暴露" if len(surges) <= 1 else "形成局部板块脉冲共性"
+
+    return {
+        "surges": surges,
+        "plunges": plunges,
+        "co_exposure": co_exposure
+    }
 
 def build_snapshot():
     stocks = []
@@ -50,10 +81,21 @@ def build_snapshot():
                 print(f"Node {node} page {p} error: {e}")
             time.sleep(0.04)
 
-    # 全局严格按股票代码升序排序
     stocks.sort(key=lambda x: x['code'])
 
-    # 宽基与行业行情拉取
+    # 尝试加载上一期快照用于计算滚动异动差分
+    prev_snapshot_path = "data/live_snapshot.json"
+    prev_stocks = []
+    if os.path.exists(prev_snapshot_path):
+        try:
+            with open(prev_snapshot_path, "r", encoding="utf-8") as f:
+                prev_data = json.load(f)
+                prev_stocks = prev_data.get("stocks", [])
+        except Exception: pass
+
+    anomalies = calculate_anomalies(stocks, prev_stocks)
+
+    # 宽基与行业
     url_idx = "http://hq.sinajs.cn/list=sh000001,sz399001,sh510300,sh588000," + ",".join(INDUSTRY_MAP.keys())
     sh_amt, sz_amt, etf_300, etf_588 = 0.0, 0.0, 0.0, 0.0
     sectors = []
@@ -86,6 +128,7 @@ def build_snapshot():
             'etf_588_amt': etf_588
         },
         'sectors': sectors,
+        'anomalies': anomalies,
         'meta': {
             'sample_count': len(stocks),
             'sector_count': len(sectors),
@@ -95,13 +138,6 @@ def build_snapshot():
                 '600_sh_main': sum(1 for s in stocks if s['code'].startswith(('600', '601', '603', '605'))),
                 '688_star': sum(1 for s in stocks if s['code'].startswith(('688', '689'))),
                 '920_bse': sum(1 for s in stocks if s['code'].startswith(('920', '83', '87', '43')))
-            },
-            'span_check': {
-                'sh_main_span': f"{[s['code'] for s in stocks if s['code'].startswith(('600','601','603','605'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('600','601','603','605'))][-1]}",
-                'sz_main_span': f"{[s['code'] for s in stocks if s['code'].startswith(('000','001','002','003'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('000','001','002','003'))][-1]}",
-                'chinext_span': f"{[s['code'] for s in stocks if s['code'].startswith(('300','301'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('300','301'))][-1]}",
-                'star_span': f"{[s['code'] for s in stocks if s['code'].startswith(('688','689'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('688','689'))][-1]}",
-                'bse_span': f"{[s['code'] for s in stocks if s['code'].startswith(('920','83','87','43'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('920','83','87','43'))][-1]}",
             }
         }
     }
@@ -109,7 +145,7 @@ def build_snapshot():
     os.makedirs('data', exist_ok=True)
     with open('data/live_snapshot.json', 'w', encoding='utf-8') as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    print(f"Snapshot written: {len(stocks)} stocks, {len(sectors)} sectors")
+    print(f"Snapshot written: {len(stocks)} stocks, anomalies: {len(anomalies['surges'])} surges / {len(anomalies['plunges'])} plunges")
 
 if __name__ == '__main__':
     build_snapshot()

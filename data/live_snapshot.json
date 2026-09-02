@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-02T15:51:16+08:00",
+  "generated_at": "2026-09-02T15:56:44+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12665,6 +12665,11 @@
       "amt": 297.0342053333
     }
   ],
+  "anomalies": {
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
+  },
   "meta": {
     "sample_count": 1400,
     "sector_count": 11,
@@ -12674,13 +12679,6 @@
       "600_sh_main": 400,
       "688_star": 200,
       "920_bse": 100
-    },
-    "span_check": {
-      "sh_main_span": "600000 -> 605599",
-      "sz_main_span": "000001 -> 002942",
-      "chinext_span": "300001 -> 301585",
-      "star_span": "688001 -> 688709",
-      "bse_span": "920000 -> 920642"
     }
   }
 }
