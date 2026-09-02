@@ -21,17 +21,19 @@ SYSTEMATIC_PLAN = [
     ('hs_bjs', [1, 5], 50),
 ]
 
+INDEX_SYMBOLS = {
+    'sh000001': '上证指数',
+    'sz399001': '深证成指',
+    'sz399006': '创业板指',
+    'sh000688': '科创50',
+    'sh000852': '中证1000',
+    'sh510300': '沪深300ETF',
+    'sh588000': '科创50ETF'
+}
+
 def calculate_anomalies(current_stocks, previous_stocks):
-    """
-    通过两期快照比对计算短窗(5-15分钟)价格差分异动:
-    Delta = Pct_current - Pct_previous
-    """
     if not previous_stocks:
-        return {
-            "surges": [],
-            "plunges": [],
-            "co_exposure": "历史快照不存在（首轮运行，无法计算差分）"
-        }
+        return {"surges": [], "plunges": [], "co_exposure": "无历史缓存（首期快照）"}
 
     prev_map = {s['code']: s['pct'] for s in previous_stocks}
     deltas = []
@@ -46,7 +48,6 @@ def calculate_anomalies(current_stocks, previous_stocks):
                 'delta_pct': round(d, 2)
             })
 
-    # 排序寻找价差异动
     deltas_sorted = sorted(deltas, key=lambda x: x['delta_pct'], reverse=True)
     surges = [s for s in deltas_sorted if s['delta_pct'] >= 1.5][:3]
     plunges = [s for s in deltas_sorted if s['delta_pct'] <= -1.5][:3]
@@ -56,11 +57,31 @@ def calculate_anomalies(current_stocks, previous_stocks):
     return {
         "surges": surges,
         "plunges": plunges,
-        "co_exposure": co_exposure,
-        "total_compared": len(deltas),
-        "max_delta": deltas_sorted[0]['delta_pct'] if deltas_sorted else 0.0,
-        "min_delta": deltas_sorted[-1]['delta_pct'] if deltas_sorted else 0.0
+        "co_exposure": co_exposure
     }
+
+def fetch_sector_money_flows():
+    """从新浪官方 MoneyFlow 接口实时抓取行业主力大单资金净流向"""
+    u_in = 'http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_bkzj_bk?page=1&num=3&sort=netamount&asc=0&fenlei=0'
+    u_out = 'http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_bkzj_bk?page=1&num=3&sort=netamount&asc=1&fenlei=0'
+    top_in, top_out = [], []
+    try:
+        req = urllib.request.Request(u_in, headers=HEADERS)
+        data = json.loads(urllib.request.urlopen(req, timeout=5).read().decode('utf-8', errors='ignore'))
+        for it in data:
+            top_in.append({'name': it.get('name'), 'net_amt_yi': round(float(it.get('netamount', 0))/1e8, 2)})
+    except Exception as e:
+        print(f"Inflow fetch error: {e}")
+
+    try:
+        req = urllib.request.Request(u_out, headers=HEADERS)
+        data = json.loads(urllib.request.urlopen(req, timeout=5).read().decode('utf-8', errors='ignore'))
+        for it in data:
+            top_out.append({'name': it.get('name'), 'net_amt_yi': round(float(it.get('netamount', 0))/1e8, 2)})
+    except Exception as e:
+        print(f"Outflow fetch error: {e}")
+
+    return {'top_inflows': top_in, 'top_outflows': top_out}
 
 def build_snapshot():
     stocks = []
@@ -92,7 +113,7 @@ def build_snapshot():
 
     stocks.sort(key=lambda x: x['code'])
 
-    # 1. 备份现有快照为 live_snapshot_prev.json 用于双向核实
+    # 差分历史
     cur_path = "data/live_snapshot.json"
     prev_path = "data/live_snapshot_prev.json"
     prev_stocks = []
@@ -101,17 +122,16 @@ def build_snapshot():
             with open(cur_path, "r", encoding="utf-8") as f:
                 prev_data = json.load(f)
                 prev_stocks = prev_data.get("stocks", [])
-            # 复制为 prev 快照
             with open(prev_path, "w", encoding="utf-8") as f:
                 json.dump(prev_data, f, ensure_ascii=False, indent=2)
         except Exception: pass
 
-    # 2. 计算差分
     anomalies = calculate_anomalies(stocks, prev_stocks)
 
-    # 3. 宽基与行业
-    url_idx = "http://hq.sinajs.cn/list=sh000001,sz399001,sh510300,sh588000," + ",".join(INDUSTRY_MAP.keys())
-    sh_amt, sz_amt, etf_300, etf_588 = 0.0, 0.0, 0.0, 0.0
+    # 1. 宽基与行业全景行情拉取 (现价、涨跌幅、成交额)
+    all_syms = list(INDEX_SYMBOLS.keys()) + list(INDUSTRY_MAP.keys())
+    url_idx = f"http://hq.sinajs.cn/list={','.join(all_syms)}"
+    indices = {}
     sectors = []
     try:
         with urllib.request.urlopen(urllib.request.Request(url_idx, headers=HEADERS), timeout=6) as r:
@@ -119,29 +139,28 @@ def build_snapshot():
                 if '=' in line:
                     sym = line.split('=')[0].replace('var hq_str_', '').strip()
                     f = line.split('=')[1].strip('";\r\n').split(',')
-                    if sym == 'sh000001' and len(f) > 9: sh_amt = float(f[9] or 0) / 1e8
-                    elif sym == 'sz399001' and len(f) > 9: sz_amt = float(f[9] or 0) / 1e8
-                    elif sym == 'sh510300' and len(f) > 9: etf_300 = float(f[9] or 0) / 1e8
-                    elif sym == 'sh588000' and len(f) > 9: etf_588 = float(f[9] or 0) / 1e8
-                    elif sym in INDUSTRY_MAP and len(f) > 9:
-                        pc = float(f[2] or 0)
-                        p = float(f[3] or 0)
+                    if len(f) > 9:
+                        name = f[0]
+                        price = float(f[3] or 0)
+                        prev_close = float(f[2] or 0)
+                        pct = ((price - prev_close)/prev_close*100) if prev_close else 0.0
                         amt = float(f[9] or 0) / 1e8
-                        pct = ((p - pc)/pc*100) if pc else 0.0
-                        sectors.append({'name': INDUSTRY_MAP[sym], 'pct': pct, 'amt': amt})
+                        if sym in INDEX_SYMBOLS:
+                            indices[sym] = {'name': INDEX_SYMBOLS[sym], 'price': round(price, 2), 'pct': round(pct, 2), 'amt': round(amt, 1)}
+                        elif sym in INDUSTRY_MAP:
+                            sectors.append({'name': INDUSTRY_MAP[sym], 'price': round(price, 2), 'pct': round(pct, 2), 'amt': round(amt, 1)})
     except Exception as e:
         print(f"Index fetch error: {e}")
+
+    # 2. 行业主力大单资金流
+    sector_flows = fetch_sector_money_flows()
 
     snapshot = {
         'generated_at': time.strftime('%Y-%m-%dT%H:%M:%S+08:00'),
         'stocks': stocks,
-        'index_amt': {
-            'sh_amt': sh_amt,
-            'sz_amt': sz_amt,
-            'etf_300_amt': etf_300,
-            'etf_588_amt': etf_588
-        },
+        'indices': indices,
         'sectors': sectors,
+        'sector_flows': sector_flows,
         'anomalies': anomalies,
         'meta': {
             'sample_count': len(stocks),
@@ -159,7 +178,7 @@ def build_snapshot():
     os.makedirs('data', exist_ok=True)
     with open('data/live_snapshot.json', 'w', encoding='utf-8') as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    print(f"Snapshot written: {len(stocks)} stocks, max_delta={anomalies['max_delta']}%, min_delta={anomalies['min_delta']}%")
+    print(f"Snapshot written: {len(stocks)} stocks, indices: {len(indices)}, flows: {len(sector_flows.get('top_inflows', []))}")
 
 if __name__ == '__main__':
     build_snapshot()
