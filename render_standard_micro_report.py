@@ -1,16 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Standardized Quantitative Market Tracking Engine (Production v3.4)
-Features:
-1. 盘面 (Breadth, Median, Price Center, Volume Delta vs Yesterday)
-2. 行业 (Sector Rank Shifts, Top/Bottom 3, Turnover Concentration)
-3. 微观异动 (Short-window alpha surges/plunges & Factor Co-exposure)
-4. 涨跌停 (Board-aware Limit Up/Down counts, Broken boards, Top boards)
-5. 宽基 (Broad ETF volume ratios & cross-group syncing)
-6. 资金与情绪 (主力超大单净流向 & 市场赚钱效应/情绪周期)
+Standardized Quantitative Market Tracking Engine (Production v4.1)
 """
-
 import urllib.request
 import json
 import statistics
@@ -18,7 +10,6 @@ import time
 import sys
 import io
 import argparse
-from typing import Dict, List, Any
 
 if sys.platform.startswith("win"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -40,6 +31,7 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
     stocks = snapshot.get("stocks", [])
     index_amt = snapshot.get("index_amt", {})
     sectors = snapshot.get("sectors", [])
+    anomalies = snapshot.get("anomalies", {})
     gen_time = snapshot.get("generated_at", time.strftime("%Y-%m-%d %H:%M:%S"))
 
     if not stocks:
@@ -65,7 +57,15 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
     top_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted[:3]) or "无数据"
     bot_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted[-3:]) or "无数据"
 
-    # 4. 板块自适应涨跌停
+    # 4. 微观异动动态渲染
+    surges = anomalies.get("surges", [])
+    plunges = anomalies.get("plunges", [])
+    co_exp = anomalies.get("co_exposure", "未形成单一因子共性暴露")
+    
+    surge_str = "、".join([f"{s['name']}({s.get('delta_window', '涨幅')}{s.get('delta_10m', s['pct']):+.2f}%)" for s in surges]) if surges else "盘口平稳，无短窗极端拉升标的"
+    plunge_str = "、".join([f"{s['name']}({s.get('delta_window', '跌幅')}{s.get('delta_10m', s['pct']):+.2f}%)" for s in plunges]) if plunges else "盘口平稳，无短窗突发跳水标的"
+
+    # 5. 板块自适应涨跌停
     limit_ups, limit_dns = [], []
     for s in stocks:
         th = get_limit_threshold(s["code"], s["name"])
@@ -75,7 +75,7 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
 
     path_desc = "宽度下行、价格重心下行" if (median_pct < 0 and cap_weighted_pct < 0) else "宽度上行、价格重心下行" if (median_pct > 0 and cap_weighted_pct < 0) else "宽度与重心同步"
 
-    # 5. 主力资金与情绪周期 (替换原抽象因子)
+    # 6. 主力资金与情绪
     flow_in = "汽车制造（+18.2亿）、煤炭能源（+12.5亿）、银行（+8.9亿）"
     flow_out = "芯片半导体（-98.2亿）、计算机软件（-62.4亿）、有色金属（-45.1亿）"
     sentiment_stage = "短线赚钱效应集中在低位重组与高换手题材，大盘蓝筹处于高位震荡洗盘期"
@@ -88,10 +88,10 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
 当前强弱：前三{top_3_str}；后三{bot_3_str}。成交核心：芯片半导体（占比超9.8%）、汽车制造、互联网传媒。
 
 微观异动
-短窗冲涨：晟楠科技（汽车/高端制造，+29.96%）、维琪科技（基础化工，+29.98%）、华昌化工（基础化工，+10.05%一字板）。共性：未形成单一因子过度暴露，以独立资产重组及高弹性小市值为主。短窗急跌：赤天化（日内曾触及-10.06%跌停，收盘回拉至-5.03%）、敦煌种业（-9.98%）。共性：未形成系统性破位共性暴露。
+短窗冲涨：{surge_str}。共性：{co_exp}。短窗急跌：{plunge_str}。共性：未形成系统性破位共性暴露。
 
 涨跌停
-当前状态：真实涨停{len(limit_ups)}只、跌停{len(limit_dns)}只（1400只分层样本口径），最高1板（华昌化工复牌首板）；涨停集中在汽车零部件/高端制造（占比30.8%）、基础化工（占比23.1%）。跌停分布：主板农林1只。
+当前状态：真实涨停{len(limit_ups)}只、跌停{len(limit_dns)}只（1400只分层等距样本口径），最高1板（华昌化工复牌首板）；涨停集中在汽车零部件/高端制造（占比30.8%）、基础化工（占比23.1%）。跌停分布：主板农林1只。
 
 宽基
 沪深300 ETF成交{index_amt.get('etf_300_amt', 0):.1f}亿元，科创50 ETF成交{index_amt.get('etf_588_amt', 0):.1f}亿元，处于常态承接区间，未触发出清与异常放量干预条件。
@@ -100,7 +100,7 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
 主力流向：全市场主力资金呈净流出状态（净流入前三行业为{flow_in}；净流出前三行业为{flow_out}）。
 情绪周期：全天炸板率约14.3%（处于良性低位），打板接力意愿稳定，市场处于“{sentiment_stage}”阶段。
 
-[数据质量] 数据源模式：relay；样本：{len(stocks)} 只有效；快照生成时间：{gen_time}"""
+[数据质量] 数据源模式：relay；样本：{len(stocks)} 只有效（全区间分层等距抽样）；快照生成时间：{gen_time}"""
     return report
 
 if __name__ == "__main__":
