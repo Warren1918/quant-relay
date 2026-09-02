@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Standardized Quantitative Market Tracking Engine (Production v4.3 - Pure Dynamic)
+Standardized Quantitative Market Tracking Engine (Production v4.4 - Cache-Busting Edition)
 Features:
+- CDN Cache-Busting: Appends unix timestamp query parameter and no-cache headers to bypass GitHub Raw 300s edge caching.
 - Zero Hardcoding: All indices, limit names, flows, and metrics are computed 100% dynamically.
 """
 import urllib.request
@@ -26,7 +27,15 @@ def get_limit_threshold(code: str, name: str) -> float:
     return 9.85
 
 def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: float = 20323.0) -> str:
-    req = urllib.request.Request(relay_url, headers={"User-Agent": "Mozilla/5.0"})
+    # 强制 CDN 穿透缓存 (Cache-Busting)
+    cache_busting_url = f"{relay_url}?_t={int(time.time())}"
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    req = urllib.request.Request(cache_busting_url, headers=headers)
     with urllib.request.urlopen(req, timeout=10) as resp:
         snapshot = json.loads(resp.read().decode("utf-8"))
 
@@ -37,20 +46,18 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
     anomalies = snapshot.get("anomalies", {})
     gen_time = snapshot.get("generated_at", time.strftime("%Y-%m-%d %H:%M:%S"))
 
-    if not stocks:
-        return "[错误] 快照数据为空，请检查中继源。"
+    if not stocks: return "[错误] 快照数据为空"
 
     # 1. 宽度与三重价格重心
     pcts = [s["pct"] for s in stocks]
     median_pct = statistics.median(pcts)
     up_ratio = sum(1 for p in pcts if p > 0) / len(pcts) * 100
-
     total_mktcap = sum(s["mktcap"] for s in stocks if s["mktcap"])
     cap_weighted_pct = sum(s["pct"] * s["mktcap"] for s in stocks if s["mktcap"]) / total_mktcap if total_mktcap else 0.0
     total_amt = sum(s["amt"] for s in stocks if s["amt"])
     amt_weighted_pct = sum(s["pct"] * s["amt"] for s in stocks if s["amt"]) / total_amt if total_amt else 0.0
 
-    # 2. 全市场总成交额与同比 Delta (从五大指数动态提取)
+    # 2. 全市场总成交额 (从五大指数动态提取)
     sh_idx = indices.get("sh000001", {})
     sz_idx = indices.get("sz399001", {})
     cur_total_vol_yi = sh_idx.get("amt", 0.0) + sz_idx.get("amt", 0.0)
@@ -59,11 +66,10 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
 
     # 3. 行业强弱与成交核心 (100% 动态排序)
     sectors_sorted_pct = sorted(sectors, key=lambda x: x["pct"], reverse=True)
-    top_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted_pct[:3]) or "无数据"
-    bot_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted_pct[-3:]) or "无数据"
-
+    top_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted_pct[:3]) or "无"
+    bot_3_str = "、".join(f"{s['name']}{s['pct']:+.2f}%" for s in sectors_sorted_pct[-3:]) or "无"
     sectors_sorted_amt = sorted(sectors, key=lambda x: x["amt"], reverse=True)
-    top_amt_str = "、".join(f"{s['name']}（成交{s['amt']:.1f}亿）" for s in sectors_sorted_amt[:3]) or "无数据"
+    top_amt_str = "、".join(f"{s['name']}（成交{s['amt']:.1f}亿）" for s in sectors_sorted_amt[:3]) or "无"
 
     # 4. 微观异动 (动态差分)
     surges = anomalies.get("surges", [])
@@ -72,33 +78,27 @@ def generate_micro_report(relay_url: str = DEFAULT_RELAY_URL, benchmark_vol: flo
     surge_str = "、".join([f"{s['name']}(短窗+{s.get('delta_pct', s['pct'])}%)" for s in surges]) if surges else "盘口平稳，无短窗异常冲涨标的（闭市零价差）"
     plunge_str = "、".join([f"{s['name']}(短窗{s.get('delta_pct', s['pct'])}%)" for s in plunges]) if plunges else "盘口平稳，无短窗突发跳水标的（闭市零价差）"
 
-    # 5. 板块自适应涨跌停 (100% 动态遍历)
-    limit_ups, limit_dns = [], []
-    for s in stocks:
-        th = get_limit_threshold(s["code"], s["name"])
-        if th != 999.0:
-            if s["pct"] >= th: limit_ups.append(s)
-            elif s["pct"] <= -th: limit_dns.append(s)
-
+    # 5. 涨跌停真实个股动态解析
+    limit_ups = [s for s in stocks if get_limit_threshold(s["code"], s["name"]) != 999.0 and s["pct"] >= get_limit_threshold(s["code"], s["name"])]
+    limit_dns = [s for s in stocks if get_limit_threshold(s["code"], s["name"]) != 999.0 and s["pct"] <= -get_limit_threshold(s["code"], s["name"])]
     up_sample_str = "、".join([f"{s['name']}({s['pct']:+.2f}%)" for s in limit_ups[:4]]) if limit_ups else "无"
     dn_sample_str = "、".join([f"{s['name']}({s['pct']:+.2f}%)" for s in limit_dns[:4]]) if limit_dns else "无"
 
-    # 6. 宽基指数格式化 (100% 动态提取点位)
+    # 6. 宽基指数动态格式化
     def fmt_idx(sym):
         it = indices.get(sym, {})
         return f"{it.get('name', sym)}{it.get('price', 0):.2f}点（{it.get('pct', 0):+.2f}%）"
-
     idx_summary = "、".join([fmt_idx(s) for s in ["sh000001", "sz399001", "sz399006", "sh000688", "sh000852"]])
     etf_300 = indices.get("sh510300", {})
     etf_588 = indices.get("sh588000", {})
 
-    # 7. 行业主力大单资金流 (100% 动态提取)
+    # 7. 行业主力大单资金流 (动态提取)
     inflows = sector_flows.get("top_inflows", [])
     outflows = sector_flows.get("top_outflows", [])
-    in_str = "、".join([f"{x['name']}（+{x['net_amt_yi']}亿）" for x in inflows]) if inflows else "暂无数据"
-    out_str = "、".join([f"{x['name']}（{x['net_amt_yi']}亿）" for x in outflows]) if outflows else "暂无数据"
+    in_str = "、".join([f"{x['name']}（+{x['net_amt_yi']}亿）" for x in inflows]) if inflows else "暂无"
+    out_str = "、".join([f"{x['name']}（{x['net_amt_yi']}亿）" for x in outflows]) if outflows else "暂无"
 
-    # 8. 情绪周期状态 (100% 规则推导)
+    # 8. 情绪周期状态
     if up_ratio < 30 and vol_delta_pct < 0:
         sentiment_stage = "存量博弈缩量普跌，主力资金在局部低位板块防守，观望情绪浓厚"
     elif up_ratio > 70:
