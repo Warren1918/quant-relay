@@ -22,16 +22,15 @@ SYSTEMATIC_PLAN = [
 ]
 
 def calculate_anomalies(current_stocks, previous_stocks):
-    """通过对比历史快照与当前快照，计算 10-20 分钟短窗超额收益异动"""
+    """
+    通过两期快照比对计算短窗(5-15分钟)价格差分异动:
+    Delta = Pct_current - Pct_previous
+    """
     if not previous_stocks:
-        # 如果没有历史快照，退化为使用日内振幅或相对全天涨跌幅极值
-        sorted_by_pct = sorted(current_stocks, key=lambda x: x['pct'], reverse=True)
-        top_surge = [s for s in sorted_by_pct if s['pct'] >= 9.8][:3]
-        top_plunge = [s for s in sorted_by_pct if s['pct'] <= -5.0][:2]
         return {
-            "surges": [{"code": s["code"], "name": s["name"], "pct": s["pct"], "delta_window": "日内绝对涨幅"} for s in top_surge],
-            "plunges": [{"code": s["code"], "name": s["name"], "pct": s["pct"], "delta_window": "日内绝对跌幅"} for s in top_plunge],
-            "co_exposure": "未形成单一因子过度暴露（初始快照，无差分历史缓存）"
+            "surges": [],
+            "plunges": [],
+            "co_exposure": "历史快照不存在（首轮运行，无法计算差分）"
         }
 
     prev_map = {s['code']: s['pct'] for s in previous_stocks}
@@ -39,18 +38,28 @@ def calculate_anomalies(current_stocks, previous_stocks):
     for s in current_stocks:
         if s['code'] in prev_map:
             d = s['pct'] - prev_map[s['code']]
-            deltas.append({'code': s['code'], 'name': s['name'], 'pct': s['pct'], 'delta_10m': d})
+            deltas.append({
+                'code': s['code'],
+                'name': s['name'],
+                'pct_current': s['pct'],
+                'pct_prev': prev_map[s['code']],
+                'delta_pct': round(d, 2)
+            })
 
-    deltas_sorted = sorted(deltas, key=lambda x: x['delta_10m'], reverse=True)
-    surges = [s for s in deltas_sorted if s['delta_10m'] > 2.0][:3]
-    plunges = [s for s in deltas_sorted if s['delta_10m'] < -2.0][:3]
+    # 排序寻找价差异动
+    deltas_sorted = sorted(deltas, key=lambda x: x['delta_pct'], reverse=True)
+    surges = [s for s in deltas_sorted if s['delta_pct'] >= 1.5][:3]
+    plunges = [s for s in deltas_sorted if s['delta_pct'] <= -1.5][:3]
 
     co_exposure = "未形成单一因子共性暴露" if len(surges) <= 1 else "形成局部板块脉冲共性"
 
     return {
         "surges": surges,
         "plunges": plunges,
-        "co_exposure": co_exposure
+        "co_exposure": co_exposure,
+        "total_compared": len(deltas),
+        "max_delta": deltas_sorted[0]['delta_pct'] if deltas_sorted else 0.0,
+        "min_delta": deltas_sorted[-1]['delta_pct'] if deltas_sorted else 0.0
     }
 
 def build_snapshot():
@@ -83,19 +92,24 @@ def build_snapshot():
 
     stocks.sort(key=lambda x: x['code'])
 
-    # 尝试加载上一期快照用于计算滚动异动差分
-    prev_snapshot_path = "data/live_snapshot.json"
+    # 1. 备份现有快照为 live_snapshot_prev.json 用于双向核实
+    cur_path = "data/live_snapshot.json"
+    prev_path = "data/live_snapshot_prev.json"
     prev_stocks = []
-    if os.path.exists(prev_snapshot_path):
+    if os.path.exists(cur_path):
         try:
-            with open(prev_snapshot_path, "r", encoding="utf-8") as f:
+            with open(cur_path, "r", encoding="utf-8") as f:
                 prev_data = json.load(f)
                 prev_stocks = prev_data.get("stocks", [])
+            # 复制为 prev 快照
+            with open(prev_path, "w", encoding="utf-8") as f:
+                json.dump(prev_data, f, ensure_ascii=False, indent=2)
         except Exception: pass
 
+    # 2. 计算差分
     anomalies = calculate_anomalies(stocks, prev_stocks)
 
-    # 宽基与行业
+    # 3. 宽基与行业
     url_idx = "http://hq.sinajs.cn/list=sh000001,sz399001,sh510300,sh588000," + ",".join(INDUSTRY_MAP.keys())
     sh_amt, sz_amt, etf_300, etf_588 = 0.0, 0.0, 0.0, 0.0
     sectors = []
@@ -145,7 +159,7 @@ def build_snapshot():
     os.makedirs('data', exist_ok=True)
     with open('data/live_snapshot.json', 'w', encoding='utf-8') as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    print(f"Snapshot written: {len(stocks)} stocks, anomalies: {len(anomalies['surges'])} surges / {len(anomalies['plunges'])} plunges")
+    print(f"Snapshot written: {len(stocks)} stocks, max_delta={anomalies['max_delta']}%, min_delta={anomalies['min_delta']}%")
 
 if __name__ == '__main__':
     build_snapshot()
