@@ -13,22 +13,22 @@ INDUSTRY_MAP = {
     'sz399997': '白酒消费', 'sz399986': '汽车制造'
 }
 
-# 严格按板块权重分层等距抽样，实现无偏全市场覆盖
-NODES = [
-    ('sh_a', 4),    # 400只 沪市主板 (600/601/603/605)
-    ('sz_a', 4),    # 400只 深市主板 (000/001/002)
-    ('cyb', 3),     # 300只 创业板 (300/301)
-    ('kcb', 2),     # 200只 科创板 (688)
-    ('hs_bjs', 1),  # 100只 北交所 (920/83/87)
+# 真正的全区间等距跳跃分层抽样配置 (步长 k ≈ 4~5，全周期覆盖老股至最新次新股)
+SYSTEMATIC_PLAN = [
+    ('sh_a', [1, 5, 10, 15, 20, 25, 30, 34], 50), # 沪市主板 (400只，覆盖 600, 601, 603, 605)
+    ('sz_a', [1, 4, 8, 12, 16, 20, 24, 28], 50),  # 深市主板 (400只，覆盖 000, 001, 002, 003)
+    ('cyb',  [1, 6, 11, 16, 21, 27], 50),         # 创业板   (300只，覆盖 300, 301)
+    ('kcb',  [1, 4, 8, 11], 50),                  # 科创板   (200只，覆盖 688001 -> 6887xx)
+    ('hs_bjs', [1, 5], 50),                       # 北交所   (100只，覆盖 920000 -> 9206xx)
 ]
 
 def build_snapshot():
     stocks = []
     seen_codes = set()
 
-    for node, pages in NODES:
-        for p in range(1, pages + 1):
-            url = f"http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page={p}&num=100&sort=symbol&asc=1&node={node}&symbol=&_s_r_a=page"
+    for node, pages, num in SYSTEMATIC_PLAN:
+        for p in pages:
+            url = f"http://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/Market_Center.getHQNodeData?page={p}&num={num}&sort=symbol&asc=1&node={node}&symbol=&_s_r_a=page"
             try:
                 req = urllib.request.Request(url, headers=HEADERS)
                 with urllib.request.urlopen(req, timeout=6) as r:
@@ -95,6 +95,13 @@ def build_snapshot():
                 '600_sh_main': sum(1 for s in stocks if s['code'].startswith(('600', '601', '603', '605'))),
                 '688_star': sum(1 for s in stocks if s['code'].startswith(('688', '689'))),
                 '920_bse': sum(1 for s in stocks if s['code'].startswith(('920', '83', '87', '43')))
+            },
+            'span_check': {
+                'sh_main_span': f"{[s['code'] for s in stocks if s['code'].startswith(('600','601','603','605'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('600','601','603','605'))][-1]}",
+                'sz_main_span': f"{[s['code'] for s in stocks if s['code'].startswith(('000','001','002','003'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('000','001','002','003'))][-1]}",
+                'chinext_span': f"{[s['code'] for s in stocks if s['code'].startswith(('300','301'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('300','301'))][-1]}",
+                'star_span': f"{[s['code'] for s in stocks if s['code'].startswith(('688','689'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('688','689'))][-1]}",
+                'bse_span': f"{[s['code'] for s in stocks if s['code'].startswith(('920','83','87','43'))][0]} -> {[s['code'] for s in stocks if s['code'].startswith(('920','83','87','43'))][-1]}",
             }
         }
     }
@@ -102,7 +109,7 @@ def build_snapshot():
     os.makedirs('data', exist_ok=True)
     with open('data/live_snapshot.json', 'w', encoding='utf-8') as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    print(f"Snapshot successfully written: {len(stocks)} stocks, {len(sectors)} sectors")
+    print(f"Snapshot written: {len(stocks)} stocks, {len(sectors)} sectors")
 
 if __name__ == '__main__':
     build_snapshot()
