@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-30T12:46:00+08:00",
+  "generated_at": "2026-10-01T06:48:50+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -4075,7 +4075,7 @@
       "pct": -0.386,
       "trade": 82.49,
       "amt": 2256202045.0,
-      "turnover": 1.72898,
+      "turnover": 1.72905,
       "mktcap": 17101921.036576
     },
     {
@@ -4669,8 +4669,8 @@
       "pct": -4.654,
       "trade": 14.75,
       "amt": 174943199.0,
-      "turnover": 6.91743,
-      "mktcap": 322913.1773
+      "turnover": 6.9171,
+      "mktcap": 322924.9773
     },
     {
       "code": "300563",
@@ -8630,7 +8630,7 @@
       "trade": 33.17,
       "amt": 403388803.0,
       "turnover": 0.21956,
-      "mktcap": 19407916.410948
+      "mktcap": 19384459.913748
     },
     {
       "code": "603289",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "000668",
-        "name": "荣丰控股",
-        "pct_current": 9.941,
-        "pct_prev": 3.765,
-        "delta_pct": 6.18
-      },
-      {
-        "code": "600289",
-        "name": "ST信通",
-        "pct_current": 3.286,
-        "pct_prev": -0.469,
-        "delta_pct": 3.75
-      },
-      {
-        "code": "002694",
-        "name": "*ST顾地",
-        "pct_current": 9.96,
-        "pct_prev": 6.375,
-        "delta_pct": 3.59
-      }
-    ],
-    "plunges": [
-      {
-        "code": "920002",
-        "name": "万达轴承",
-        "pct_current": -0.726,
-        "pct_prev": 0.994,
-        "delta_pct": -1.72
-      },
-      {
-        "code": "603790",
-        "name": "雅运股份",
-        "pct_current": 0.0,
-        "pct_prev": 1.778,
-        "delta_pct": -1.78
-      },
-      {
-        "code": "603823",
-        "name": "百合花",
-        "pct_current": -0.656,
-        "pct_prev": 1.242,
-        "delta_pct": -1.9
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
