@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-09T07:07:15+08:00",
+  "generated_at": "2026-10-09T14:20:46+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -5200,7 +5200,7 @@
       "pct": -2.082,
       "trade": 36.68,
       "amt": 48912560.0,
-      "turnover": 0.70402,
+      "turnover": 0.69779,
       "mktcap": 710536.910804
     },
     {
@@ -11949,8 +11949,8 @@
       "name": "德众汽车",
       "pct": -0.815,
       "trade": 4.87,
-      "amt": 25092079.0,
-      "turnover": 4.71275,
+      "amt": 25790579.0,
+      "turnover": 4.81089,
       "mktcap": 87094.924647
     },
     {
@@ -11994,8 +11994,8 @@
       "name": "森合高科",
       "pct": 5.395,
       "trade": 39.27,
-      "amt": 110045504.0,
-      "turnover": 5.41044,
+      "amt": 125517504.0,
+      "turnover": 6.16209,
       "mktcap": 410391.924327
     },
     {
@@ -12192,8 +12192,8 @@
       "name": "恒拓开源",
       "pct": 3.044,
       "trade": 8.8,
-      "amt": 17208148.0,
-      "turnover": 1.86043,
+      "amt": 18105148.0,
+      "turnover": 2.00039,
       "mktcap": 123650.10856
     },
     {
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "920021",
-        "name": "流金科技",
-        "pct_current": 20.136,
-        "pct_prev": -4.047,
-        "delta_pct": 24.18
-      },
-      {
-        "code": "688036",
-        "name": "传音控股",
-        "pct_current": 6.182,
-        "pct_prev": -14.312,
-        "delta_pct": 20.49
-      },
-      {
-        "code": "300821",
-        "name": "东岳硅材",
-        "pct_current": 20.014,
-        "pct_prev": -0.14,
-        "delta_pct": 20.15
-      }
-    ],
-    "plunges": [
-      {
-        "code": "301088",
-        "name": "戎美股份",
-        "pct_current": -0.148,
-        "pct_prev": 1.348,
-        "delta_pct": -1.5
-      },
-      {
-        "code": "603027",
-        "name": "千禾味业",
-        "pct_current": -0.135,
-        "pct_prev": 1.368,
-        "delta_pct": -1.5
-      },
-      {
-        "code": "600282",
-        "name": "南钢股份",
-        "pct_current": 0.0,
-        "pct_prev": 1.542,
-        "delta_pct": -1.54
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
