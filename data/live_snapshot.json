@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-13T07:20:20+08:00",
+  "generated_at": "2026-10-13T15:09:47+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "688655",
-        "name": "迅捷兴",
-        "pct_current": 20.003,
-        "pct_prev": -10.756,
-        "delta_pct": 30.76
-      },
-      {
-        "code": "920066",
-        "name": "科拜尔",
-        "pct_current": 15.895,
-        "pct_prev": -4.475,
-        "delta_pct": 20.37
-      },
-      {
-        "code": "688670",
-        "name": "金迪克",
-        "pct_current": -0.13,
-        "pct_prev": -19.979,
-        "delta_pct": 19.85
-      }
-    ],
-    "plunges": [
-      {
-        "code": "603291",
-        "name": "联合水务",
-        "pct_current": -1.042,
-        "pct_prev": 0.465,
-        "delta_pct": -1.51
-      },
-      {
-        "code": "920059",
-        "name": "双英集团",
-        "pct_current": -2.345,
-        "pct_prev": -0.831,
-        "delta_pct": -1.51
-      },
-      {
-        "code": "000030",
-        "name": "富奥股份",
-        "pct_current": -1.01,
-        "pct_prev": 0.508,
-        "delta_pct": -1.52
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
