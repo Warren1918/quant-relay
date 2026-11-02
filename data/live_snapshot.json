@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T07:11:38+08:00",
+  "generated_at": "2026-11-02T17:04:19+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "688175",
-        "name": "高凌信息",
-        "pct_current": 20.019,
-        "pct_prev": -8.903,
-        "delta_pct": 28.92
-      },
-      {
-        "code": "300556",
-        "name": "丝路视觉",
-        "pct_current": 19.988,
-        "pct_prev": -8.703,
-        "delta_pct": 28.69
-      },
-      {
-        "code": "920021",
-        "name": "流金科技",
-        "pct_current": 18.878,
-        "pct_prev": -6.402,
-        "delta_pct": 25.28
-      }
-    ],
-    "plunges": [
-      {
-        "code": "300852",
-        "name": "四会富仕",
-        "pct_current": 0.0,
-        "pct_prev": 1.513,
-        "delta_pct": -1.51
-      },
-      {
-        "code": "000596",
-        "name": "古井贡酒",
-        "pct_current": 8.464,
-        "pct_prev": 10.0,
-        "delta_pct": -1.54
-      },
-      {
-        "code": "605488",
-        "name": "福莱新材",
-        "pct_current": -3.333,
-        "pct_prev": -1.784,
-        "delta_pct": -1.55
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
