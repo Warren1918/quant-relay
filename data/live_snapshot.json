@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-03T07:32:26+08:00",
+  "generated_at": "2026-11-03T15:27:19+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "301513",
-        "name": "尚水智能",
-        "pct_current": 20.0,
-        "pct_prev": 2.862,
-        "delta_pct": 17.14
-      },
-      {
-        "code": "300832",
-        "name": "新产业",
-        "pct_current": 8.364,
-        "pct_prev": -4.542,
-        "delta_pct": 12.91
-      },
-      {
-        "code": "688015",
-        "name": "交控科技",
-        "pct_current": -0.524,
-        "pct_prev": -11.052,
-        "delta_pct": 10.53
-      }
-    ],
-    "plunges": [
-      {
-        "code": "000595",
-        "name": "新能股份",
-        "pct_current": -0.213,
-        "pct_prev": 1.296,
-        "delta_pct": -1.51
-      },
-      {
-        "code": "603006",
-        "name": "联明股份",
-        "pct_current": 0.093,
-        "pct_prev": 1.599,
-        "delta_pct": -1.51
-      },
-      {
-        "code": "002066",
-        "name": "瑞泰科技",
-        "pct_current": -2.006,
-        "pct_prev": -0.482,
-        "delta_pct": -1.52
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
