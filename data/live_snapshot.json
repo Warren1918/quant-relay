@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-04T07:13:29+08:00",
+  "generated_at": "2026-11-04T15:27:44+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "920045",
-        "name": "蘅东光",
-        "pct_current": 21.797,
-        "pct_prev": -23.146,
-        "delta_pct": 44.94
-      },
-      {
-        "code": "301080",
-        "name": "百普赛斯",
-        "pct_current": 16.172,
-        "pct_prev": -19.701,
-        "delta_pct": 35.87
-      },
-      {
-        "code": "688025",
-        "name": "杰普特",
-        "pct_current": 19.213,
-        "pct_prev": -14.92,
-        "delta_pct": 34.13
-      }
-    ],
-    "plunges": [
-      {
-        "code": "600055",
-        "name": "万东医疗",
-        "pct_current": -0.569,
-        "pct_prev": 0.957,
-        "delta_pct": -1.53
-      },
-      {
-        "code": "301078",
-        "name": "孩子王",
-        "pct_current": -0.152,
-        "pct_prev": 1.385,
-        "delta_pct": -1.54
-      },
-      {
-        "code": "600272",
-        "name": "开开实业",
-        "pct_current": 1.592,
-        "pct_prev": 3.134,
-        "delta_pct": -1.54
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
