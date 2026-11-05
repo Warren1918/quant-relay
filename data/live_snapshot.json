@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-05T07:41:15+08:00",
+  "generated_at": "2026-11-05T15:49:38+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "920007",
-        "name": "酉立智能",
-        "pct_current": 29.987,
-        "pct_prev": 6.261,
-        "delta_pct": 23.73
-      },
-      {
-        "code": "688429",
-        "name": "时创能源",
-        "pct_current": 19.978,
-        "pct_prev": 2.887,
-        "delta_pct": 17.09
-      },
-      {
-        "code": "688648",
-        "name": "中邮科技",
-        "pct_current": 19.993,
-        "pct_prev": 3.202,
-        "delta_pct": 16.79
-      }
-    ],
-    "plunges": [
-      {
-        "code": "600021",
-        "name": "上海电力",
-        "pct_current": 0.599,
-        "pct_prev": 2.098,
-        "delta_pct": -1.5
-      },
-      {
-        "code": "688177",
-        "name": "百奥泰",
-        "pct_current": 2.946,
-        "pct_prev": 4.466,
-        "delta_pct": -1.52
-      },
-      {
-        "code": "002061",
-        "name": "浙江交科",
-        "pct_current": -0.302,
-        "pct_prev": 1.223,
-        "delta_pct": -1.53
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
