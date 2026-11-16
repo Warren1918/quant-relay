@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-16T07:37:42+08:00",
+  "generated_at": "2026-11-16T17:25:54+08:00",
   "stocks": [
     {
       "code": "000001",
@@ -12745,53 +12745,9 @@
     ]
   },
   "anomalies": {
-    "surges": [
-      {
-        "code": "300010",
-        "name": "ST豆神",
-        "pct_current": 15.084,
-        "pct_prev": -7.969,
-        "delta_pct": 23.05
-      },
-      {
-        "code": "300824",
-        "name": "北鼎股份",
-        "pct_current": 19.944,
-        "pct_prev": -0.83,
-        "delta_pct": 20.77
-      },
-      {
-        "code": "301513",
-        "name": "尚水智能",
-        "pct_current": 14.21,
-        "pct_prev": -4.078,
-        "delta_pct": 18.29
-      }
-    ],
-    "plunges": [
-      {
-        "code": "002466",
-        "name": "天齐锂业",
-        "pct_current": -3.092,
-        "pct_prev": -1.593,
-        "delta_pct": -1.5
-      },
-      {
-        "code": "600288",
-        "name": "大恒科技",
-        "pct_current": -2.587,
-        "pct_prev": -1.083,
-        "delta_pct": -1.5
-      },
-      {
-        "code": "300579",
-        "name": "数字认证",
-        "pct_current": -3.061,
-        "pct_prev": -1.553,
-        "delta_pct": -1.51
-      }
-    ],
-    "co_exposure": "形成局部板块脉冲共性"
+    "surges": [],
+    "plunges": [],
+    "co_exposure": "未形成单一因子共性暴露"
   },
   "meta": {
     "sample_count": 1400,
